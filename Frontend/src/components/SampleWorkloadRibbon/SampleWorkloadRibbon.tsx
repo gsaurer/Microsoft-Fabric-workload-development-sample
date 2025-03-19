@@ -75,11 +75,11 @@ const HomeTabToolbar = (props: RibbonProps) => {
           onClick={onRefreshClicked} />
       </Tooltip>
       <Tooltip
-        content="Settings"
+        content="Delete OneLake File"
         relationship="label">
         <ToolbarButton
-          aria-label="Settings"
-          data-testid="item-editor-settings-btn"
+          aria-label="Delte OneLake File"
+          data-testid="item-editor-delete-btn"
           icon={<Delete24Regular />}
           disabled={!props.isDeleteOneLakeFileButtonEnabled}
           onClick={onDeleteClicked} />

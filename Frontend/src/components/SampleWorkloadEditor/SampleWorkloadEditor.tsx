@@ -420,7 +420,15 @@ export function SampleWorkloadEditor(props: PageProps) {
                     <div className="section">
                     <Label>Store calculation result to:</Label>
                     <RadioGroup onChange={selectedStorageChanged} value={storageName}>
-                      
+                      <Tooltip
+                        content={getOneLakeTooltipText("Item folder in OneLake", canUseOneLake)}
+                        relationship="label">
+                        <Radio 
+                          value="OneLake" 
+                          label="Item folder in OneLake" 
+                          disabled={!canUseOneLake} 
+                        data-testid="onelake-radiobutton-tooltip" />
+                      </Tooltip>
                       <Radio value="Lakehouse" label="Lakehouse" />
                       {storageName === "Lakehouse" && (
                       <div style={{ marginLeft: "32px", padding: "4px" }}>
@@ -472,16 +480,6 @@ export function SampleWorkloadEditor(props: PageProps) {
                           </Field>
                         </Stack>
                       </div>)}
-                      <Tooltip
-                      content={getOneLakeTooltipText("Item folder in OneLake", canUseOneLake)}
-                      relationship="label">
-                      <Radio 
-                        value="OneLake" 
-                        label="Item folder in OneLake" 
-                        disabled={!canUseOneLake} 
-                      data-testid="onelake-radiobutton-tooltip" />
-                      </Tooltip>
-
                     </RadioGroup>
                     <Label>Store calculation format:</Label>
                     <RadioGroup onChange={selectedStorageTypeChanged} value={storageType}>
