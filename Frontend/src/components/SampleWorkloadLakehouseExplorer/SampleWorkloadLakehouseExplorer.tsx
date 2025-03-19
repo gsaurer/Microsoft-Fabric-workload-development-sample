@@ -34,6 +34,7 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
   const [filesInLakehouse, setFilesInLakehouse] = useState<FileMetadata[]>(null);
   const [fileSelected, setFileSelected] = useState<TableMetadata>(null);
   const [loadingStatus, setLoadingStatus] = useState<string>("idle");
+  const [showSelection] = useState<boolean>(false);
   const [isExplorerVisible, setIsExplorerVisible] = useState<boolean>(true);
   const [hasSchema, setHasSchema] = useState<boolean>(false);
 
@@ -191,9 +192,13 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
           <Subtitle2>Error loading tables</Subtitle2>
           <p>Do you have permission to view this lakehouse?</p>
           </div>}
+        {showSelection && (   
+          <div>
+          <Subtitle2>{"Selected: " + tableSelected?.name || fileSelected?.name}</Subtitle2><br/>
+          </div>       
+        )}
       </Stack>
-      <Subtitle2>Table Selected: {tableSelected?.name}</Subtitle2><br/>
-      <Subtitle2>File Selected: {fileSelected?.name}</Subtitle2>
+      
     </>
   );
 }
