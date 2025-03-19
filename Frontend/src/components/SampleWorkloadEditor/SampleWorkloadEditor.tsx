@@ -416,9 +416,9 @@ export function SampleWorkloadEditor(props: PageProps) {
                       <Label>Item Description: {sampleItem?.description}</Label>
                     )}
                     </div>
-                    <Divider alignContent="start">Calculation result storage location</Divider>
+                    <Divider alignContent="start">Calculation job storage settings</Divider>
                     <div className="section">
-                    <Label>Store calculation result to:</Label>
+                    <Label>Store location:</Label>
                     <RadioGroup onChange={selectedStorageChanged} value={storageName}>
                       <Tooltip
                         content={getOneLakeTooltipText("Item folder in OneLake", canUseOneLake)}
@@ -481,7 +481,7 @@ export function SampleWorkloadEditor(props: PageProps) {
                         </Stack>
                       </div>)}
                     </RadioGroup>
-                    <Label>Store calculation format:</Label>
+                    <Label>Store format:</Label>
                     <RadioGroup onChange={selectedStorageTypeChanged} value={storageType}>
                       <Stack horizontal tokens={{ childrenGap: 10 }}>
                         <Radio 
@@ -562,7 +562,7 @@ export function SampleWorkloadEditor(props: PageProps) {
                     >
                     Start calculation job
                     </Button>
-                    <Divider alignContent="start">Result</Divider>
+                    <Divider alignContent="start">Calculation result</Divider>
                     <Field
                     label="Last result"
                     orientation="horizontal"
