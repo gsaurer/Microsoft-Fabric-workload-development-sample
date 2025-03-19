@@ -3,9 +3,9 @@
     "displayName": "Workload_Display_Name",
     "fullDisplayName": "Workload_Full_Display_Name",
     "description": "Workload_Description",
-    "favicon": "assets/images/briefcase.png",
+    "favicon": "assets/images/workload.png",
     "icon": {
-    "name": "assets/images/briefcase.png"
+    "name": "assets/images/workload.png"
     },
     "homePage": {
       "learningMaterials": [
