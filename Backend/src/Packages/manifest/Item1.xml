@@ -12,7 +12,7 @@
       <ItemJobTypes>
         <ItemJobType Name="Org.WorkloadSample.SampleWorkloadItem.ScheduledJob" />
         <ItemJobType Name="Org.WorkloadSample.SampleWorkloadItem.CalculateAsText" />
-        <ItemJobType Name="Org.WorkloadSample.SampleWorkloadItem.CalculateAsParquet" />
+        <ItemJobType Name="Org.WorkloadSample.SampleWorkloadItem.CalculateAsCSV" />
         <ItemJobType Name="Org.WorkloadSample.SampleWorkloadItem.LongRunningCalculateAsText" />
         <ItemJobType Name="Org.WorkloadSample.SampleWorkloadItem.InstantJob" />
       </ItemJobTypes>

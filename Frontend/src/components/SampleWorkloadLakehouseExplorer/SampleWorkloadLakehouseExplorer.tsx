@@ -87,7 +87,7 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
 
   async function onDatahubClicked() {
     const result = await callDatahubOpen(
-      ["Lakehouse"],
+      ["Lakehouse", "Org.WorkloadSample.SampleWorkloadItem"],
       "Select a Lakehouse to use for Sample Workload",
       false,
       workloadClient
@@ -130,7 +130,7 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
           {!isExplorerVisible && (
             <Button onClick={toggleExplorer} appearance="subtle" icon={<ChevronDoubleRight20Regular />}></Button>
           )}
-          <h1>Lakehouse explorer</h1>
+          <h1>Data explorer</h1>
           {isExplorerVisible && (
             <Button onClick={toggleExplorer} appearance="subtle" icon={<ChevronDoubleLeft20Regular />}></Button>
           )}
@@ -138,7 +138,7 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
         {selectedLakehouse == null && isExplorerVisible && (
           <Stack className="main-body" verticalAlign="center" horizontalAlign="center" tokens={{ childrenGap: 5 }}>
             <Image src="../../../internalAssets/Page.svg" />
-            <span className="add">Add a Lakehouse</span>
+            <span className="add">Select an Item</span>
               <Tooltip content={"Open Datahub Explorer"} relationship="label">
                 <Button className="add-button" size="small" onClick={() => onDatahubClicked()} appearance="primary">
                   Add
@@ -150,7 +150,7 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
         {selectedLakehouse && loadingStatus == "idle" && isExplorerVisible && (
           
           <Tree
-            aria-label="Tables in Lakehouse"
+            aria-label="Tables in item"
             className="selector-body"
             size="medium"
             defaultOpenItems={["Lakehouse", "Tables", "Schemas"]}

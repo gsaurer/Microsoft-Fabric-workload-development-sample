@@ -87,7 +87,7 @@ namespace Boilerplate.Items
             var op2 = _metadata.Operand2;
             var calculationOperator = _metadata.Operator;
 
-            var result = CalculateResult(op1, op2, calculationOperator);
+            var calculationResult = CalculateResult(op1, op2, calculationOperator);
 
             // Simulate long running job
             if (string.Equals(jobType, Item1JobType.LongRunningCalculateAsText, StringComparison.OrdinalIgnoreCase))
@@ -97,9 +97,24 @@ namespace Boilerplate.Items
 
             // Write result to Lakehouse if job is not cancelled
             if (!ItemMetadataStore.JobCancelRequestExists(TenantObjectId, ItemObjectId, jobInstanceId)) {
+                var fileContent = String.Empty;
                 var filePath = GetCalculationResultFilePath(jobType, jobInstanceId);
-                await OneLakeClientService.WriteToOneLakeFile(token, filePath, result);
-                
+                if (string.Equals(jobType, Item1JobType.CalculateAsCSV, StringComparison.OrdinalIgnoreCase))
+                {
+                    if(await OneLakeClientService.CheckIfFileExists(token, filePath)){
+                        fileContent = await OneLakeClientService.GetOneLakeFile(token, filePath);
+                    } else {
+                        fileContent = "Time,JobID,Operand1,Operand2,Operator,Result\n";
+                    }
+                    fileContent += $"{DateTime.UtcNow},{jobInstanceId},{op1},{op2},{calculationOperator},{calculationResult}\n";
+                } 
+                else {
+                    fileContent = FormatResult(op1, op2, calculationOperator, calculationResult);
+                }
+                await OneLakeClientService.WriteToOneLakeFile(token, filePath, fileContent);    
+                _metadata.LastCalculationRunTime = DateTime.UtcNow;
+                _metadata.LastCalculationRunId = jobInstanceId;            
+                _metadata.LastCalculationResult = calculationResult.ToString();
                 _metadata.LastCalculationResultLocation = filePath;
                 await SaveChanges();
             }
@@ -118,6 +133,7 @@ namespace Boilerplate.Items
             var token = await AuthenticationService.GetAccessTokenOnBehalfOf(AuthorizationContext, OneLakeConstants.OneLakeScopes);
 
             var filePath = GetCalculationResultFilePath(jobType, jobInstanceId);
+            
             var fileExists = await OneLakeClientService.CheckIfFileExists(token, filePath);
 
             if (ItemMetadataStore.JobCancelRequestExists(TenantObjectId, ItemObjectId, jobInstanceId))
@@ -138,7 +154,7 @@ namespace Boilerplate.Items
                 { Item1JobType.ScheduledJob, $"CalculationResult_{jobInstanceId}.txt" },
                 { Item1JobType.CalculateAsText, $"CalculationResult_{jobInstanceId}.txt" },
                 { Item1JobType.LongRunningCalculateAsText, $"CalculationResult_{jobInstanceId}.txt" },
-                { Item1JobType.CalculateAsParquet, $"CalculationResult_{jobInstanceId}.parquet" }
+                { Item1JobType.CalculateAsCSV, $"CalculationResult.csv" }
             };
             typeToFileName.TryGetValue(jobType, out var fileName);
 
@@ -151,28 +167,27 @@ namespace Boilerplate.Items
             throw new NotSupportedException("Workload job type is not supported");
         }
 
-        private string CalculateResult(int op1, int op2, Item1Operator calculationOperator)
+        private int CalculateResult(int op1, int op2, Item1Operator calculationOperator)
         {
             switch (calculationOperator)
             {
                 case Item1Operator.Add:
-                    return FormatResult(op1, op2, calculationOperator, op1 + op2);
+                    return op1 + op2;
                 case Item1Operator.Subtract:
-                    return FormatResult(op1, op2, calculationOperator, op1 - op2);
+                    return op1 - op2;
                 case Item1Operator.Multiply:
-                    return FormatResult(op1, op2, calculationOperator, op1 * op2);
+                    return op1 * op2;
                 case Item1Operator.Divide:
                     if (op2 != 0)
                     {
-                        return FormatResult(op1, op2, calculationOperator, op1 / op2);
+                        return op1 / op2;
                     }
                     else
                     {
                         throw new ArgumentException("Cannot divide by zero.");
                     }
                 case Item1Operator.Random:
-                    var rand = new Random().Next(op1, op2);
-                    return FormatResult(op1, op2, calculationOperator, rand);
+                    return new Random().Next(op1, op2);
                 default:
                     throw new ArgumentException($"Unsupported operator: {calculationOperator}");
             }
@@ -279,9 +294,10 @@ namespace Boilerplate.Items
         {
             if (_metadata.LastCalculationResultLocation.IsNullOrEmpty())
                 return string.Empty;
-
-            var token = await AuthenticationService.GetAccessTokenOnBehalfOf(AuthorizationContext, OneLakeConstants.OneLakeScopes);
-            return await OneLakeClientService.GetOneLakeFile(token, _metadata.LastCalculationResultLocation);
+            else
+                return _metadata.LastCalculationResult;
+            //var token = await AuthenticationService.GetAccessTokenOnBehalfOf(AuthorizationContext, OneLakeConstants.OneLakeScopes);
+            //return await OneLakeClientService.GetOneLakeFile(token, _metadata.LastCalculationResultLocation);
         }
     }
 }

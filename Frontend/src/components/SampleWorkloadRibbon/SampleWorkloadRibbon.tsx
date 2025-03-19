@@ -12,6 +12,7 @@ import {
   Edit24Regular,
   Share24Regular,
   Settings24Regular,
+  FolderSync24Regular,
 } from "@fluentui/react-icons";
 import { Stack } from '@fluentui/react';
 import { PageProps } from 'src/App';
@@ -25,7 +26,7 @@ const HomeTabToolbar = (props: RibbonProps) => {
   }
 
   async function onRefreshClicked() { 
-    await props.refreshLakehouseCallback();
+    await props.refreshItemCallback();
   }
 
   async function onSaveAsClicked() {
@@ -63,7 +64,7 @@ const HomeTabToolbar = (props: RibbonProps) => {
         <ToolbarButton
           aria-label="Refresh Explorer"
           data-testid="item-editor-save-btn"
-          icon={<Share24Regular />}
+          icon={<FolderSync24Regular />}
           onClick={onRefreshClicked} />
       </Tooltip>
 
@@ -104,7 +105,7 @@ const CollabButtons = (props: RibbonProps) => {
 
 export interface RibbonProps extends PageProps {
   saveItemCallback: () => Promise<void>;
-  refreshLakehouseCallback: () => void;
+  refreshItemCallback: () => void;
   isStorageSelected?: boolean;
   isSaveButtonEnabled?: boolean;
   isFEOnly?: boolean;

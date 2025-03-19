@@ -35,10 +35,10 @@ import {
   callItemUpdate,
   callItemDelete,
   callGetItem1SupportedOperators,
-  callItem1DoubleResult,
   isOneLakeSupported,
   getLastResult,
-  callOpenSettings
+  callOpenSettings,
+  callRunItemJob
 } from "../../controller/SampleWorkloadController";
 import { Ribbon } from "../SampleWorkloadRibbon/SampleWorkloadRibbon";
 import { convertGetItemResultToWorkloadItem } from "../../utils";
@@ -64,14 +64,11 @@ export function SampleWorkloadEditor(props: PageProps) {
   initializeIcons();
 
   // React state for WorkloadClient APIs
-  const [operand1ValidationMessage, setOperand1ValidationMessage] =
-    useState<string>("");
-  const [operand2ValidationMessage, setOperand2ValidationMessage] =
-    useState<string>("");
+  const [operand1ValidationMessage, setOperand1ValidationMessage] = useState<string>("");
+  const [operand2ValidationMessage, setOperand2ValidationMessage] = useState<string>("");
   const [selectedLakehouse, setSelectedLakehouse] = useState<GenericItem>(undefined);
   const [selectedLakehouseInExplorer, setSelectedLakehouseInExplorer] = useState<GenericItem>(undefined);
-  const [sampleItem, setSampleItem] =
-    useState<WorkloadItem<ItemPayload>>(undefined);
+  const [sampleItem, setSampleItem] = useState<WorkloadItem<ItemPayload>>(undefined);
   const [operand1, setOperand1] = useState<number>(0);
   const [operand2, setOperand2] = useState<number>(0);
   const [operator, setOperator] = useState<string | null>(null);
@@ -80,7 +77,8 @@ export function SampleWorkloadEditor(props: PageProps) {
   const [supportedOperators, setSupportedOperators] = useState<string[]>([]);
   const [hasLoadedSupportedOperators, setHasLoadedSupportedOperators] = useState(false);
   const [canUseOneLake, setCanUseOneLake] = useState<boolean>(false);
-  const [storageName, setStorageName] = useState<string>("Lakehouse");
+  const [storageName, setStorageName] = useState<string>("OneLake");
+  const [storageType, setStorageType] = useState<string>("File");
   const [calculationResult, setCalculationResult] = useState<string>("");
   const [isLoadingOperators, setIsLoadingOperators] = useState<boolean>(true);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
@@ -150,6 +148,7 @@ export function SampleWorkloadEditor(props: PageProps) {
 
   async function afterNavigateCallBack(_event: AfterNavigateAwayData): Promise<void> {
     //clears the data after navigation
+    setSelectedLakehouseInExplorer(undefined);
     setSelectedLakehouse(undefined);
     setSampleItem(undefined);
     return;
@@ -165,6 +164,13 @@ export function SampleWorkloadEditor(props: PageProps) {
     if (result) {
       setSelectedLakehouse(result);
       setDirty(true);
+    }
+  }
+
+  async function onNavigateToLakehouse() {
+    if (selectedLakehouse) {
+      const path = `/groups/${selectedLakehouse.workspaceId}/${selectedLakehouse.type}/${selectedLakehouse.id}`;
+      await workloadClient.navigation.navigate(`host`, {path});
     }
   }
 
@@ -201,33 +207,7 @@ export function SampleWorkloadEditor(props: PageProps) {
     setDirty(true);
   }
 
-  function canDoubleOperands(operand1: number, operand2: number) {
-    const isOperand1Valid = isValidOperand(operand1);
-    const isOperand2Valid = isValidOperand(operand2);
-    if (!isOperand1Valid) {
-      setOperand1ValidationMessage("Operand 1 may lead to overflow if doubled");
-    }
-    if (!isOperand2Valid) {
-      setOperand2ValidationMessage("Operand 2 may lead to overflow if doubled");
-    }
-    return isOperand1Valid && isOperand2Valid;
-  }
 
-  async function onDoubleButtonClick() {
-    if (sampleItem && canDoubleOperands(operand1*2, operand2*2)) {
-      const result = await callItem1DoubleResult(
-        sampleWorkloadBEUrl,
-        workloadClient,
-        sampleItem.workspaceId,
-        sampleItem.id
-      );
-      if (result) {
-        // Update both operands
-        setOperand1(result.Operand1);
-        setOperand2(result.Operand2);
-      }
-    }
-  }
 
   async function loadDataFromUrl(
     pageContext: ContextProps,
@@ -249,6 +229,7 @@ export function SampleWorkloadEditor(props: PageProps) {
         const item1Metadata: Item1ClientMetadata =
           item.extendedMetdata.item1Metadata;
         setSelectedLakehouse(item1Metadata?.lakehouse);
+        setSelectedLakehouseInExplorer(item)
         setOperand1(item1Metadata?.operand1);
         setOperand2(item1Metadata?.operand2);
         setOperand1ValidationMessage("");
@@ -316,19 +297,39 @@ export function SampleWorkloadEditor(props: PageProps) {
     return sampleItem?.id || pageContext.itemObjectId;
   }
 
-  function isDisabledDoubleResultButton(): boolean {
-    return isDirty || operator == "0" || sampleItem == undefined;
-  }
-
   const selectedStorageChanged = (ev: FormEvent<HTMLDivElement>, data: RadioGroupOnChangeData) => {
     setStorageName(data.value);
     setDirty(true);
+  };
+
+  const selectedStorageTypeChanged = (ev: FormEvent<HTMLDivElement>, data: RadioGroupOnChangeData) => {
+    setStorageType(data.value);
+    setDirty(true);
+  };
+
+  async function onRunCalculationButtonClick(){
+    SaveItem();
+    var jobType = "Org.WorkloadSample.SampleWorkloadItem.CalculateAsText";
+    if(storageType === "CSV"){
+      jobType = "Org.WorkloadSample.SampleWorkloadItem.CalculateAsCSV";
+    }
+    callRunItemJob(
+      getItemObjectId(),
+      jobType,
+      JSON.stringify({metadata: 'JobMetadata'}),
+      true /* showNotification */,
+      workloadClient);
   };
 
   function getOneLakeTooltipText(regularTooltipMessage: string, canUseOneLake: boolean): string {
     return !canUseOneLake
       ? 'OneLake is not supported for this item type. CreateOneLakeFoldersOnArtifactCreation attribute must be set in the item manifest.'
       : regularTooltipMessage;
+  }
+
+  function refreshItemExplorer(){
+    loadCalculationResult(getItemObjectId());
+    setSelectedLakehouseInExplorer({id: sampleItem.id, workspaceId: sampleItem.workspaceId, displayName: sampleItem.displayName, description: sampleItem.description} as GenericItem);
   }
 
   // HTML page contents
@@ -349,7 +350,7 @@ export function SampleWorkloadEditor(props: PageProps) {
           !!operator
         }
         saveItemCallback={SaveItem}
-        refreshLakehouseCallback={() => setSelectedLakehouseInExplorer(null)}
+        refreshItemCallback={() => refreshItemExplorer()}
         isFEOnly={sampleItem?.id !== undefined}
         openSettingsCallback={openSettings}
         itemObjectId={getItemObjectId()}
@@ -401,50 +402,60 @@ export function SampleWorkloadEditor(props: PageProps) {
                       <Label>Item Description: {sampleItem?.description}</Label>
                     )}
                     </div>
-                    <Divider alignContent="start">Calculation result storage</Divider>
+                    <Divider alignContent="start">Calculation result storage location</Divider>
                     <div className="section">
-                    <Label>Store calculation result to {storageName}</Label>
+                    <Label>Store calculation result to:</Label>
                     <RadioGroup onChange={selectedStorageChanged} value={storageName}>
+                      
                       <Radio value="Lakehouse" label="Lakehouse" />
                       {storageName === "Lakehouse" && (
                       <div style={{ marginLeft: "32px", padding: "4px" }}>
                         <Stack>
-                        <Field
+                          <Field
                           label="Name"
                           orientation="horizontal"
                           className="field"
-                        >
+                          >
                           <Stack horizontal>
-                          <Input
-                            size="small"
-                            placeholder="Lakehouse Name"
-                            style={{ marginLeft: "10px" }}
-                            value={
-                            selectedLakehouse ? selectedLakehouse.displayName : ""
-                            }
-                          />
-                          <Button
-                            style={{ width: "24px", height: "24px" }}
-                            icon={<Database16Regular />}
-                            appearance="primary"
-                            onClick={() => onCallDatahubLakehouse()}
-                            data-testid="item-editor-lakehouse-btn"
-                          />
+                            <Input
+                              size="small"
+                              placeholder="Lakehouse Name"
+                              style={{ marginLeft: "10px" }}
+                              value={
+                              selectedLakehouse ? selectedLakehouse.displayName : ""
+                              }
+                            />
+                            <Button
+                              style={{ width: "24px", height: "24px" }}
+                              icon={<Database16Regular />}
+                              appearance="primary"
+                              onClick={() => onCallDatahubLakehouse()}
+                              data-testid="item-editor-lakehouse-btn"
+                            />                        
                           </Stack>
-                        </Field>
-                        <Field
+                          </Field>
+                          <Field
                           label="ID"
                           orientation="horizontal"
                           className="field"
-                        >
-                          <Input
-                          size="small"
-                          placeholder="Lakehouse ID"
-                          style={{ marginLeft: "10px" }}
-                          value={selectedLakehouse ? selectedLakehouse.id : ""}
-                          data-testid="lakehouse-id-input"
-                          />
-                        </Field>
+                          >
+                          <Stack horizontal>
+                            <Input
+                            size="small"
+                            placeholder="Lakehouse ID"
+                            style={{ marginLeft: "10px" }}
+                            value={selectedLakehouse ? selectedLakehouse.id : ""}
+                            data-testid="lakehouse-id-input"
+                            />
+                            <Button
+                              style={{ width: "24px", height: "24px" }}
+                              icon={<TriangleRight20Regular />}
+                              appearance="primary"
+                              onClick={() => onNavigateToLakehouse()}
+                              data-testid="item-editor-settings-btn"
+                            />
+                          </Stack>
+                          </Field>
                         </Stack>
                       </div>)}
                       <Tooltip
@@ -455,20 +466,26 @@ export function SampleWorkloadEditor(props: PageProps) {
                         label="Item folder in OneLake" 
                         disabled={!canUseOneLake} 
                       data-testid="onelake-radiobutton-tooltip" />
-                    </Tooltip>
+                      </Tooltip>
+
                     </RadioGroup>
-                    <Field
-                    label="Last result"
-                    orientation="horizontal"
-                    className="field"
-                    >
-                    <Input
-                      size="small"
-                      placeholder="Last calculation result"
-                      data-testid="lastresult-input"
-                      value={calculationResult}
-                    />
-                    </Field>
+                    <Label>Store calculation format:</Label>
+                    <RadioGroup onChange={selectedStorageTypeChanged} value={storageType}>
+                      <Stack horizontal tokens={{ childrenGap: 10 }}>
+                        <Radio 
+                          value="File" 
+                          label="Single File" />
+                        <Tooltip
+                          content="Store the information in a single file" 
+                          relationship="label"/>
+                        <Radio 
+                          value="CSV" 
+                          label="CSV File" />
+                        <Tooltip
+                          content="Store the information in a CSV file" 
+                          relationship="label"/>
+                      </Stack>
+                    </RadioGroup>                   
                   </div>
                   <Divider alignContent="start">Calculation definition</Divider>
                   <div className="section">
@@ -528,11 +545,24 @@ export function SampleWorkloadEditor(props: PageProps) {
                     <Button
                     appearance="primary"
                     icon={<TriangleRight20Regular />}
-                    disabled={isDisabledDoubleResultButton()}
-                    onClick={() => onDoubleButtonClick()}
+                    disabled={false}
+                    onClick={() => onRunCalculationButtonClick()}
                     >
-                    Trigger clalculation job
+                    Start calculation job
                     </Button>
+                    <Divider alignContent="start">Result</Divider>
+                    <Field
+                    label="Last result"
+                    orientation="horizontal"
+                    className="field"
+                    >
+                    <Input
+                      size="small"
+                      placeholder="Last calculation result"
+                      data-testid="lastresult-input"
+                      value={calculationResult}
+                    />
+                    </Field>                    
                   </div>
                   </div>
                 )}

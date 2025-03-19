@@ -32,14 +32,14 @@ const sampleItemType = sampleWorkloadName + ".SampleWorkloadItem";
 const calculateAsText = sampleItemType + ".CalculateAsText";
 const longRunningCalculateAsText = sampleItemType + ".LongRunningCalculateAsText";
 const scheduledJob = sampleItemType + ".ScheduledJob";
-const calculateAsParquet = sampleItemType + ".CalculateAsParquet";
+const calculateAsCSV = sampleItemType + ".CalculateAsCSV";
 const instantJob = sampleItemType + ".InstantJob";
 
 export const jobTypeDisplayNames: Record<string, string> = {
     [scheduledJob]: 'Scheduled Job',
     [calculateAsText]: 'Calculate as Text',
     [longRunningCalculateAsText]: 'Long Running Calculate as Text',
-    [calculateAsParquet]: 'Calculate as Parquet',
+    [calculateAsCSV]: 'Calculate as CSV',
     [instantJob]: 'Instant Job'
 };
 

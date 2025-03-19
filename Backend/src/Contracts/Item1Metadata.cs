@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 // </copyright>
 
+using System;
+
 namespace Boilerplate.Contracts
 {
     public enum Item1Operator
@@ -21,6 +23,9 @@ namespace Boilerplate.Contracts
         public Item1Operator Operator { get; set; }
         public TLakehouse Lakehouse { get; set; }
         public bool UseOneLake { get; set; }
+        public string LastCalculationResult { get; set; }
+        public DateTime LastCalculationRunTime { get; set; }
+        public Guid LastCalculationRunId { get; set; }
         public string LastCalculationResultLocation { get; set; }
     }
 
@@ -31,6 +36,7 @@ namespace Boilerplate.Contracts
     {
         public static readonly Item1Metadata Default = new Item1Metadata { Lakehouse = new ItemReference() };
 
+
         public Item1Metadata Clone()
         {
             return new Item1Metadata
@@ -40,7 +46,10 @@ namespace Boilerplate.Contracts
                 Operator = Operator,
                 Lakehouse = Lakehouse,
                 UseOneLake = UseOneLake,
-                LastCalculationResultLocation = LastCalculationResultLocation
+                LastCalculationResultLocation = LastCalculationResultLocation,
+                LastCalculationRunTime = LastCalculationRunTime,
+                LastCalculationRunId = LastCalculationRunId,
+                LastCalculationResult = LastCalculationResult,
             };
         }
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { LakehouseExplorerFilesTreeProps } from "src/models/LakehouseExplorerModel";
-import { Square20Regular } from "@fluentui/react-icons";
+import { Document20Regular } from "@fluentui/react-icons";
 import { TreeItem, TreeItemLayout, Tooltip } from "@fluentui/react-components";
 
 export function FileTree(props: LakehouseExplorerFilesTreeProps) {
@@ -20,7 +20,7 @@ export function FileTree(props: LakehouseExplorerFilesTreeProps) {
                         content={file.name}>
                             <TreeItemLayout
                                 className={"lvl1 " + (file.isSelected ? "selected" : "")}
-                                iconBefore={<Square20Regular />}>
+                                iconBefore={<Document20Regular />}>
                                 {file.name}
                             </TreeItemLayout>
                         </Tooltip>

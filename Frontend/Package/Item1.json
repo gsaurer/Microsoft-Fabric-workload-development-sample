@@ -6,10 +6,10 @@
       "path": "/sample-workload-editor"
     },
     "icon": {
-      "name": "assets/images/execute.png"
+      "name": "assets/images/item1.png"
     },
     "activeIcon": {
-      "name": "assets/images/execute.png"
+      "name": "assets/images/item1.png"
     },
     "contextMenuItems": [
       {
@@ -38,7 +38,7 @@
           "name": "assets/images/execute.png"
         },
         "handler": {
-          "action": "run.instant.job"
+          "action": "run.calculate.job"
         },
         "tooltip": "Quick_Action_1_Tooltip"
       }
