@@ -107,6 +107,7 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
 
   function tableSelectedCallback(tableSelected: TableMetadata) {
     setTableSelected(tableSelected);
+    setFileSelected(null);
     // setTablesInLakehouse to rerender the tree
     const updatedTables = tablesInLakehouse.map((table: TableMetadata) => {
       return { ...table, isSelected: table.path === tableSelected.path };
@@ -116,6 +117,7 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
 
   function fileSelectedCallback(fileSelected: FileMetadata) {
     setFileSelected(fileSelected);
+    setTableSelected(null); 
     // setFilesInLakehouse to rerender the tree
     const updatedFiles = filesInLakehouse.map((file: FileMetadata) => {
       return { ...file, isSelected: file.path === fileSelected.path };
@@ -177,11 +179,9 @@ export function LakehouseExplorerComponent({ workloadClient, selectedLakehouse, 
                     allTablesInLakehouse={tablesInLakehouse}
                     onSelectTableCallback= {tableSelectedCallback}/>
                   }
-                  {true &&
-                    <FileTree
-                      allFilesInLakehouse={filesInLakehouse}
-                      onSelectFileCallback= {fileSelectedCallback}/>
-                  }
+                  <FileTree
+                    allFilesInLakehouse={filesInLakehouse}
+                    onSelectFileCallback= {fileSelectedCallback}/>
                 </Tree>
               </TreeItem>
             </div>

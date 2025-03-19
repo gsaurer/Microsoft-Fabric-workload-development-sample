@@ -53,6 +53,7 @@ import "./../../styles.scss";
 import { ItemMetadataNotFound } from "../../models/WorkloadExceptionsModel";
 import { LoadingProgressBar } from "../LoadingIndicator/LoadingProgressBar";
 import { LakehouseExplorerComponent } from '../SampleWorkloadLakehouseExplorer/SampleWorkloadLakehouseExplorer';
+import { FileMetadata, TableMetadata } from "src/models/LakehouseExplorerModel";
 
 export function SampleWorkloadEditor(props: PageProps) {
   const sampleWorkloadBEUrl = process.env.WORKLOAD_BE_URL;
@@ -68,6 +69,8 @@ export function SampleWorkloadEditor(props: PageProps) {
   const [operand2ValidationMessage, setOperand2ValidationMessage] = useState<string>("");
   const [selectedLakehouse, setSelectedLakehouse] = useState<GenericItem>(undefined);
   const [selectedLakehouseInExplorer, setSelectedLakehouseInExplorer] = useState<GenericItem>(undefined);
+  const [selectedFileInExplorer, setSelectedFileInExplorer] = useState<FileMetadata>(undefined);
+  const [selectedTableInExplorer, setSelectedTableInExplorer] = useState<TableMetadata>(undefined);
   const [sampleItem, setSampleItem] = useState<WorkloadItem<ItemPayload>>(undefined);
   const [operand1, setOperand1] = useState<number>(0);
   const [operand2, setOperand2] = useState<number>(0);
@@ -332,6 +335,15 @@ export function SampleWorkloadEditor(props: PageProps) {
     setSelectedLakehouseInExplorer({id: sampleItem.id, workspaceId: sampleItem.workspaceId, displayName: sampleItem.displayName, description: sampleItem.description} as GenericItem);
   }
 
+  function deleteItemFromExplorer(){
+    if(selectedFileInExplorer){
+      setSelectedFileInExplorer(undefined);  
+    } 
+    if(selectedTableInExplorer){
+      setSelectedTableInExplorer(undefined);
+    }
+  }
+
   // HTML page contents
   if (isLoading) {
     return <LoadingProgressBar message="Loading..." />;
@@ -350,6 +362,8 @@ export function SampleWorkloadEditor(props: PageProps) {
           !!operator
         }
         saveItemCallback={SaveItem}
+        isDeleteOneLakeFileButtonEnabled={selectedFileInExplorer != undefined || selectedTableInExplorer != undefined}
+        deleteOneLakeFileCallback={() => deleteItemFromExplorer()}
         refreshItemCallback={() => refreshItemExplorer()}
         isFEOnly={sampleItem?.id !== undefined}
         openSettingsCallback={openSettings}

@@ -13,6 +13,7 @@ import {
   Share24Regular,
   Settings24Regular,
   FolderSync24Regular,
+  Delete24Regular,
 } from "@fluentui/react-icons";
 import { Stack } from '@fluentui/react';
 import { PageProps } from 'src/App';
@@ -34,6 +35,12 @@ const HomeTabToolbar = (props: RibbonProps) => {
     await props.saveItemCallback();
     return;
   }
+
+  async function onDeleteClicked() {
+    await props.deleteOneLakeFileCallback();
+    return;
+  }
+
 
   function getSaveButtonTooltipText(): string {
     return !props.isFEOnly
@@ -67,7 +74,16 @@ const HomeTabToolbar = (props: RibbonProps) => {
           icon={<FolderSync24Regular />}
           onClick={onRefreshClicked} />
       </Tooltip>
-
+      <Tooltip
+        content="Settings"
+        relationship="label">
+        <ToolbarButton
+          aria-label="Settings"
+          data-testid="item-editor-settings-btn"
+          icon={<Delete24Regular />}
+          disabled={!props.isDeleteOneLakeFileButtonEnabled}
+          onClick={onDeleteClicked} />
+      </Tooltip>
       <Tooltip
         content="Settings"
         relationship="label">
@@ -108,6 +124,8 @@ export interface RibbonProps extends PageProps {
   refreshItemCallback: () => void;
   isStorageSelected?: boolean;
   isSaveButtonEnabled?: boolean;
+  isDeleteOneLakeFileButtonEnabled?: boolean;
+  deleteOneLakeFileCallback: () => void;
   isFEOnly?: boolean;
   openSettingsCallback: () => Promise<void>;
   itemObjectId?: string;
