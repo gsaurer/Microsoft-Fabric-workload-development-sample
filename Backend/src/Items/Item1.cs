@@ -39,20 +39,17 @@ namespace Boilerplate.Items
             : base(logger, itemMetadataStore, authenticationService, oneLakeClientService, authorizationContext)
         {
             _lakeHouseClientService = lakeHouseClientService;
+            _metadata = Item1Metadata.Default.Clone();
         }
 
         public override string ItemType => WorkloadConstants.ItemTypes.Item1;
 
-        public ItemReference Lakehouse => Metadata.Lakehouse;
-
-        public int Operand1 => Metadata.Operand1;
-
-        public int Operand2 => Metadata.Operand2;
 
         public override async Task<ItemPayload> GetItemPayload()
         {
             var typeSpecificMetadata = GetTypeSpecificMetadata();
 
+            //fetch the lakehouse information in case it is connected
             FabricItem lakehouseItem = null;
             if (typeSpecificMetadata.Lakehouse != null && typeSpecificMetadata.Lakehouse.Id != Guid.Empty)
             {

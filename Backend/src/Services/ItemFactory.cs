@@ -35,14 +35,16 @@ namespace Boilerplate.Services
 
         public IItem CreateItem(string itemType, AuthorizationContext authorizationContext)
         {
+            IItem retVal = null;
             switch (itemType)
             {
                 case WorkloadConstants.ItemTypes.Item1:
-                    return new Item1(_serviceProvider.GetService<ILogger<Item1>>(), _itemMetadataStore, _lakeHouseClientService, _onelakeClientService, _authenticationService, authorizationContext);
-
+                    retVal = new Item1(_serviceProvider.GetService<ILogger<Item1>>(), _itemMetadataStore, _lakeHouseClientService, _onelakeClientService, _authenticationService, authorizationContext);
+                    break;
                 default:
                     throw new NotSupportedException($"Items of type {itemType} are not supported");
             }
+            return retVal;
         }
     }
 }

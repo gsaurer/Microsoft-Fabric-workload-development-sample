@@ -34,7 +34,10 @@ namespace Boilerplate.Contracts
     /// </summary>
     public class Item1Metadata: Item1MetadataBase<ItemReference>
     {
-        public static readonly Item1Metadata Default = new Item1Metadata { Lakehouse = new ItemReference() };
+        public static readonly Item1Metadata Default = new Item1Metadata { 
+            Lakehouse = new ItemReference(), 
+            UseOneLake = true , 
+            Operator = Item1Operator.Add};
 
 
         public Item1Metadata Clone()
@@ -62,6 +65,10 @@ namespace Boilerplate.Contracts
                 Operator = Operator,
                 Lakehouse = lakehouse,
                 UseOneLake = UseOneLake,
+                LastCalculationResult = LastCalculationResult,
+                LastCalculationRunTime = LastCalculationRunTime,    
+                LastCalculationRunId = LastCalculationRunId,
+                LastCalculationResultLocation = LastCalculationResultLocation,
             };
         }
     }

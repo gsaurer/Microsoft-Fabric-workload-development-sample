@@ -36,7 +36,6 @@ import {
   callItemDelete,
   callGetItem1SupportedOperators,
   isOneLakeSupported,
-  getLastResult,
   callOpenSettings,
   callRunItemJob
 } from "../../controller/SampleWorkloadController";
@@ -72,17 +71,23 @@ export function SampleWorkloadEditor(props: PageProps) {
   const [selectedFileInExplorer, setSelectedFileInExplorer] = useState<FileMetadata>(undefined);
   const [selectedTableInExplorer, setSelectedTableInExplorer] = useState<TableMetadata>(undefined);
   const [sampleItem, setSampleItem] = useState<WorkloadItem<ItemPayload>>(undefined);
+  
+  const [isDirty, setDirty] = useState<boolean>(false);
+  
   const [operand1, setOperand1] = useState<number>(0);
   const [operand2, setOperand2] = useState<number>(0);
   const [operator, setOperator] = useState<string | null>(null);
-  const [isDirty, setDirty] = useState<boolean>(false);
   const [invalidOperands, setInvalidOperands] = useState<boolean>(false);
   const [supportedOperators, setSupportedOperators] = useState<string[]>([]);
   const [hasLoadedSupportedOperators, setHasLoadedSupportedOperators] = useState(false);
   const [canUseOneLake, setCanUseOneLake] = useState<boolean>(false);
   const [storageName, setStorageName] = useState<string>("OneLake");
   const [storageType, setStorageType] = useState<string>("File");
-  const [calculationResult, setCalculationResult] = useState<string>("");
+  const [lastCalculationResult, setLastCalculationResult] = useState<number | null>(undefined);
+  const [lastCalculationRunTime, setLastCalculationRunTime] = useState<Date | null>(undefined);
+  const [lastCalculationRunId, setLastCalculationRunId] = useState<string | null>(undefined);
+  const [lastCalculationResultLocation, setLastCalculationResultLocation] = useState<string | null>(undefined);
+
   const [isLoadingOperators, setIsLoadingOperators] = useState<boolean>(true);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const isLoading = isLoadingOperators || isLoadingData;
@@ -125,15 +130,6 @@ export function SampleWorkloadEditor(props: PageProps) {
     }
   }
 
-  async function loadCalculationResult(itemId: string): Promise<void> {
-    try {
-      const calcaulationResult = await getLastResult(sampleWorkloadBEUrl, workloadClient, itemId);
-      setCalculationResult(calcaulationResult);
-    } catch (error) {
-      console.error(`Error loading loadCalculationResult: ${error}`);
-    }
-  }
-
   async function loadSupportedOperators(): Promise<void> {
     setIsLoadingOperators(true);
     try {
@@ -172,7 +168,13 @@ export function SampleWorkloadEditor(props: PageProps) {
 
   async function onNavigateToLakehouse() {
     if (selectedLakehouse) {
-      const path = `/groups/${selectedLakehouse.workspaceId}/${selectedLakehouse.type}/${selectedLakehouse.id}`;
+      var type = selectedLakehouse.type;
+      //need to hardcode as the type is int and not the real string
+      if (selectedLakehouse.type.toString() === "12")
+        type = "lakehouses";
+
+      const path = `/groups/${selectedLakehouse.workspaceId}/${type}/${selectedLakehouse.id}`;
+      console.log(`Navigating to ${path}`);
       await workloadClient.navigation.navigate(`host`, {path});
     }
   }
@@ -211,7 +213,6 @@ export function SampleWorkloadEditor(props: PageProps) {
   }
 
 
-
   async function loadDataFromUrl(
     pageContext: ContextProps,
     pathname: string
@@ -219,31 +220,9 @@ export function SampleWorkloadEditor(props: PageProps) {
     setIsLoadingData(true);
     if (pageContext.itemObjectId) {
       // for Edit scenario we get the itemObjectId and then load the item via the workloadClient SDK
-      try {
-        const getItemResult = await callItemGet(
-          pageContext.itemObjectId,
-          workloadClient
-        );
-        const item = convertGetItemResultToWorkloadItem<ItemPayload>(getItemResult);
-        setSampleItem(item);
-        setSelectedTab("home");
-
-        // load extendedMetadata
-        const item1Metadata: Item1ClientMetadata =
-          item.extendedMetdata.item1Metadata;
-        setSelectedLakehouse(item1Metadata?.lakehouse);
-        setSelectedLakehouseInExplorer(item)
-        setOperand1(item1Metadata?.operand1);
-        setOperand2(item1Metadata?.operand2);
-        setOperand1ValidationMessage("");
-        setOperand2ValidationMessage("");
-        setInvalidOperands(false);
-        setStorageName(item1Metadata?.useOneLake ? "OneLake" : "Lakehouse");
-        const loadedOperator = item1Metadata?.operator;
-        const isValidOperator = loadedOperator && supportedOperators.includes(loadedOperator);
-        setOperator(isValidOperator ? loadedOperator : null);
-        await loadCanUseOneLake(item.workspaceId, item.id);
-        await loadCalculationResult(item.id);
+      try {        
+        loadItemPayload()
+        setSelectedTab("home");          
         setItemEditorErrorMessage("");
       } catch (error) {
         clearItemData();
@@ -270,19 +249,49 @@ export function SampleWorkloadEditor(props: PageProps) {
     setSampleItem(undefined);
   }
 
-  async function SaveItem() {
+  async function saveItemPayload() {
     let payload: UpdateItemPayload = {
       item1Metadata: {
         lakehouse: selectedLakehouse,
         operand1: operand1,
         operand2: operand2,
         operator: operator,
-        useOneLake: storageName === "OneLake"
+        useOneLake: storageName === "OneLake",
+        lastCalculationResult: lastCalculationResult,
+        lastCalculationRunId: lastCalculationRunId,
+        lastCalculationRunTime: lastCalculationRunTime,
+        lastCalculationResultLocation: lastCalculationResultLocation,
       },
     };
 
     var successResult = await callItemUpdate(sampleItem.id, payload, workloadClient);
     setDirty(!successResult);
+  }
+
+  async function loadItemPayload() {
+    const getItemResult = await callItemGet(pageContext.itemObjectId, workloadClient);
+    const item = convertGetItemResultToWorkloadItem<ItemPayload>(getItemResult);
+    console.log(`Loaded item: ${JSON.stringify(item)}`);    
+    await setSampleItem(item);
+    setSelectedLakehouseInExplorer(item)
+    const item1Metadata: Item1ClientMetadata = item.extendedMetdata.item1Metadata;
+    setSelectedLakehouse(item1Metadata.lakehouse);
+    setStorageName(item1Metadata.useOneLake ? "OneLake" : "Lakehouse");            
+    setOperand1(item1Metadata.operand1);
+    setOperand1ValidationMessage("");
+    setOperand2(item1Metadata.operand2);
+    setOperand2ValidationMessage("");
+    setOperator(item1Metadata.operator);
+    setLastCalculationResult(item1Metadata.lastCalculationResult);                        
+    setLastCalculationRunId(item1Metadata.lastCalculationRunId);                        
+    setLastCalculationRunTime(item1Metadata.lastCalculationRunTime);             
+    setLastCalculationResultLocation(item1Metadata.lastCalculationResultLocation);                   
+    setInvalidOperands(false);    
+    loadCanUseOneLake(item.workspaceId, item.id);
+  }
+
+  async function refreshItemEditor() {
+    loadItemPayload()    
   }
 
   async function openSettings() {
@@ -311,7 +320,7 @@ export function SampleWorkloadEditor(props: PageProps) {
   };
 
   async function onRunCalculationButtonClick(){
-    SaveItem();
+    saveItemPayload();
     var jobType = "Org.WorkloadSample.SampleWorkloadItem.CalculateAsText";
     if(storageType === "CSV"){
       jobType = "Org.WorkloadSample.SampleWorkloadItem.CalculateAsCSV";
@@ -330,12 +339,7 @@ export function SampleWorkloadEditor(props: PageProps) {
       : regularTooltipMessage;
   }
 
-  function refreshItemExplorer(){
-    loadCalculationResult(getItemObjectId());
-    setSelectedLakehouseInExplorer({id: sampleItem.id, workspaceId: sampleItem.workspaceId, displayName: sampleItem.displayName, description: sampleItem.description} as GenericItem);
-  }
-
-  function deleteItemFromExplorer(){
+  function deleteFileFromOneLake(){
     if(selectedFileInExplorer){
       setSelectedFileInExplorer(undefined);  
     } 
@@ -361,10 +365,10 @@ export function SampleWorkloadEditor(props: PageProps) {
           !invalidOperands &&
           !!operator
         }
-        saveItemCallback={SaveItem}
+        saveItemCallback={saveItemPayload}
         isDeleteOneLakeFileButtonEnabled={selectedFileInExplorer != undefined || selectedTableInExplorer != undefined}
-        deleteOneLakeFileCallback={() => deleteItemFromExplorer()}
-        refreshItemCallback={() => refreshItemExplorer()}
+        deleteOneLakeFileCallback={() => deleteFileFromOneLake()}
+        refreshItemCallback={() => refreshItemEditor()}
         isFEOnly={sampleItem?.id !== undefined}
         openSettingsCallback={openSettings}
         itemObjectId={getItemObjectId()}
@@ -385,203 +389,243 @@ export function SampleWorkloadEditor(props: PageProps) {
                   <h2>Sample Item Editor</h2>
                   {/* Crud item API usage example */}
                   {itemEditorErrorMessage && (
-                  <MessageBar intent="error">
-                    <MessageBarBody className="message-bar-body">
-                    <MessageBarTitle>
-                      You cannot edit this item.
-                    </MessageBarTitle>
-                    {itemEditorErrorMessage}
-                    <MessageBarActions>
-                      <Button onClick={() => deleteItem(pageContext.itemObjectId)}>
-                      Delete Item
-                      </Button>
-                    </MessageBarActions>
-                    </MessageBarBody>
-                  </MessageBar>
+                    <MessageBar intent="error">
+                      <MessageBarBody className="message-bar-body">
+                      <MessageBarTitle>
+                        You cannot edit this item.
+                      </MessageBarTitle>
+                      {itemEditorErrorMessage}
+                      <MessageBarActions>
+                        <Button onClick={() => deleteItem(pageContext.itemObjectId)}>
+                        Delete Item
+                        </Button>
+                      </MessageBarActions>
+                      </MessageBarBody>
+                    </MessageBar>
                   )}
-                  {!itemEditorErrorMessage && (
-                  <div>
-                    <Divider alignContent="start">
-                    {sampleItem ? "" : "New "}Item Details
-                    </Divider>
-                    <div className="section" data-testid='item-editor-metadata' >
-                    {sampleItem && (
-                      <Label>WorkspaceId Id: {sampleItem?.workspaceId}</Label>
-                    )}
-                    {sampleItem && <Label>Item Id: {sampleItem?.id}</Label>}
-                    {sampleItem && (
-                      <Label>Item Display Name: {sampleItem?.displayName}</Label>
-                    )}
-                    {sampleItem && (
-                      <Label>Item Description: {sampleItem?.description}</Label>
-                    )}
-                    </div>
-                    <Divider alignContent="start">Calculation job storage settings</Divider>
-                    <div className="section">
-                    <Label>Store location:</Label>
-                    <RadioGroup onChange={selectedStorageChanged} value={storageName}>
-                      <Tooltip
-                        content={getOneLakeTooltipText("Item folder in OneLake", canUseOneLake)}
-                        relationship="label">
-                        <Radio 
-                          value="OneLake" 
-                          label="Item folder in OneLake" 
-                          disabled={!canUseOneLake} 
-                        data-testid="onelake-radiobutton-tooltip" />
-                      </Tooltip>
-                      <Radio value="Lakehouse" label="Lakehouse" />
-                      {storageName === "Lakehouse" && (
-                      <div style={{ marginLeft: "32px", padding: "4px" }}>
-                        <Stack>
-                          <Field
-                          label="Name"
-                          orientation="horizontal"
-                          className="field"
-                          >
-                          <Stack horizontal>
+                </span>
+                {!itemEditorErrorMessage && (
+                <Stack horizontal tokens={{ childrenGap: 20 }}>
+                  <Stack.Item>
+                    <span>                 
+                        <div>
+                          <Divider alignContent="start">
+                            {sampleItem ? "" : "New "}Item Details
+                          </Divider>
+                          <div className="section" data-testid='item-editor-metadata' >
+                            {sampleItem && (
+                              <Label>WorkspaceId Id: {sampleItem?.workspaceId}</Label>
+                            )}
+                            {sampleItem && <Label>Item Id: {sampleItem?.id}</Label>}
+                            {sampleItem && (
+                              <Label>Item Display Name: {sampleItem?.displayName}</Label>
+                            )}
+                            {sampleItem && (
+                              <Label>Item Description: {sampleItem?.description}</Label>
+                            )}
+                            {sampleItem && (
+                              <Label>OneLake item location: https://onelake.blob.fabric.microsoft.com/{sampleItem?.workspaceId}/{sampleItem?.id}/</Label>
+                            )}
+                          </div>
+                        </div>
+                    </span>
+                  </Stack.Item>
+                  <Stack.Item>
+                    <span>
+                        <div>
+                          <Divider alignContent="start">Calculation job storage settings</Divider>
+                          <div className="section">
+                            <Label>Store location:</Label>
+                            <RadioGroup onChange={selectedStorageChanged} value={storageName}>
+                              <Tooltip
+                                content={getOneLakeTooltipText("Item folder in OneLake", canUseOneLake)}
+                                relationship="label">
+                                <Radio 
+                                  value="OneLake" 
+                                  label="Item folder in OneLake" 
+                                  disabled={!canUseOneLake} 
+                                data-testid="onelake-radiobutton-tooltip" />
+                              </Tooltip>
+                              <Radio value="Lakehouse" label="Lakehouse" />
+                              {storageName === "Lakehouse" && (
+                              <div style={{ marginLeft: "32px", padding: "4px" }}>
+                                <Stack>
+                                  <Field
+                                  label="Name"
+                                  orientation="horizontal"
+                                  className="field"
+                                  >
+                                  <Stack horizontal>
+                                    <Input
+                                      size="small"
+                                      placeholder="Lakehouse Name"
+                                      style={{ marginLeft: "10px" }}
+                                      value={
+                                      selectedLakehouse ? selectedLakehouse.displayName : ""
+                                      }
+                                    />
+                                    <Button
+                                      style={{ width: "24px", height: "24px" }}
+                                      icon={<Database16Regular />}
+                                      appearance="primary"
+                                      onClick={() => onCallDatahubLakehouse()}
+                                      data-testid="item-editor-lakehouse-btn"
+                                    />                        
+                                  </Stack>
+                                  </Field>
+                                  <Field
+                                  label="ID"
+                                  orientation="horizontal"
+                                  className="field"
+                                  >
+                                    <Input
+                                    size="small"
+                                    placeholder="Lakehouse ID"
+                                    style={{ marginLeft: "10px" }}
+                                    value={selectedLakehouse ? selectedLakehouse.id : ""}
+                                    data-testid="lakehouse-id-input"
+                                    />
+                                  </Field>
+                                </Stack>
+                                <Button
+                                  appearance="primary"
+                                  icon={<TriangleRight20Regular />}
+                                  disabled={selectedLakehouse ? false : true}
+                                  onClick={() => onNavigateToLakehouse()}
+                                  >Navigate to Lakehouse</Button>
+                              </div>)}
+                            </RadioGroup>
+                            <Label>Store format:</Label>
+                            <RadioGroup onChange={selectedStorageTypeChanged} value={storageType}>
+                              <Stack horizontal tokens={{ childrenGap: 10 }}>
+                                <Radio 
+                                  value="File" 
+                                  label="Single File" />
+                                <Tooltip
+                                  content="Store the information in a single file" 
+                                  relationship="label"/>
+                                <Radio 
+                                  value="CSV" 
+                                  label="CSV File" />
+                                <Tooltip
+                                  content="Store the information in a CSV file" 
+                                  relationship="label"/>
+                              </Stack>
+                            </RadioGroup>                   
+                          </div>
+                          <Divider alignContent="start">Calculation definition</Divider>
+                          <div className="section">
+                            <Field
+                            label="Operand 1"
+                            validationMessage={operand1ValidationMessage}
+                            orientation="horizontal"
+                            className="field"
+                            >
                             <Input
                               size="small"
-                              placeholder="Lakehouse Name"
-                              style={{ marginLeft: "10px" }}
-                              value={
-                              selectedLakehouse ? selectedLakehouse.displayName : ""
+                              type="number"
+                              placeholder="Value of the 1st operand"
+                              value={operand1.toString()}
+                              onChange={(e) =>
+                              onOperand1InputChanged(parseInt(e.target.value))
                               }
+                              data-testid="operand1-input"
                             />
-                            <Button
-                              style={{ width: "24px", height: "24px" }}
-                              icon={<Database16Regular />}
-                              appearance="primary"
-                              onClick={() => onCallDatahubLakehouse()}
-                              data-testid="item-editor-lakehouse-btn"
-                            />                        
-                          </Stack>
-                          </Field>
-                          <Field
-                          label="ID"
-                          orientation="horizontal"
-                          className="field"
-                          >
-                          <Stack horizontal>
+                            </Field>
+                            <Field
+                            label="Operand 2"
+                            validationMessage={operand2ValidationMessage}
+                            orientation="horizontal"
+                            className="field"
+                            >
                             <Input
-                            size="small"
-                            placeholder="Lakehouse ID"
-                            style={{ marginLeft: "10px" }}
-                            value={selectedLakehouse ? selectedLakehouse.id : ""}
-                            data-testid="lakehouse-id-input"
+                              size="small"
+                              type="number"
+                              placeholder="value of the 2nd operand"
+                              value={operand2.toString()}
+                              onChange={(e) =>
+                              onOperand2InputChanged(parseInt(e.target.value))
+                              }
+                              data-testid="operand2-input"
                             />
+                            </Field>
+                            <Field
+                            label="Operator"
+                            orientation="horizontal"
+                            className="field"
+                            >
+                            <Combobox
+                              key={pageContext.itemObjectId}
+                              data-testid="operator-combobox"
+                              placeholder="Operator"
+                              value={operator ?? ''}
+                              onOptionSelect={(_, opt) =>
+                              onOperatorInputChanged(opt.optionValue)
+                              }
+                            >
+                              {supportedOperators.map((option) => (
+                              <Option key={option} data-testid={option} value={option}>{option}</Option>
+                              ))}
+                            </Combobox>
+                            </Field>
                             <Button
-                              style={{ width: "24px", height: "24px" }}
-                              icon={<TriangleRight20Regular />}
-                              appearance="primary"
-                              onClick={() => onNavigateToLakehouse()}
-                              data-testid="item-editor-settings-btn"
-                            />
-                          </Stack>
-                          </Field>
-                        </Stack>
-                      </div>)}
-                    </RadioGroup>
-                    <Label>Store format:</Label>
-                    <RadioGroup onChange={selectedStorageTypeChanged} value={storageType}>
-                      <Stack horizontal tokens={{ childrenGap: 10 }}>
-                        <Radio 
-                          value="File" 
-                          label="Single File" />
-                        <Tooltip
-                          content="Store the information in a single file" 
-                          relationship="label"/>
-                        <Radio 
-                          value="CSV" 
-                          label="CSV File" />
-                        <Tooltip
-                          content="Store the information in a CSV file" 
-                          relationship="label"/>
-                      </Stack>
-                    </RadioGroup>                   
-                  </div>
-                  <Divider alignContent="start">Calculation definition</Divider>
-                  <div className="section">
-                    <Field
-                    label="Operand 1"
-                    validationMessage={operand1ValidationMessage}
-                    orientation="horizontal"
-                    className="field"
-                    >
-                    <Input
-                      size="small"
-                      type="number"
-                      placeholder="Value of the 1st operand"
-                      value={operand1.toString()}
-                      onChange={(e) =>
-                      onOperand1InputChanged(parseInt(e.target.value))
-                      }
-                      data-testid="operand1-input"
-                    />
-                    </Field>
-                    <Field
-                    label="Operand 2"
-                    validationMessage={operand2ValidationMessage}
-                    orientation="horizontal"
-                    className="field"
-                    >
-                    <Input
-                      size="small"
-                      type="number"
-                      placeholder="value of the 2nd operand"
-                      value={operand2.toString()}
-                      onChange={(e) =>
-                      onOperand2InputChanged(parseInt(e.target.value))
-                      }
-                      data-testid="operand2-input"
-                    />
-                    </Field>
-                    <Field
-                    label="Operator"
-                    orientation="horizontal"
-                    className="field"
-                    >
-                    <Combobox
-                      key={pageContext.itemObjectId}
-                      data-testid="operator-combobox"
-                      placeholder="Operator"
-                      value={operator ?? ''}
-                      onOptionSelect={(_, opt) =>
-                      onOperatorInputChanged(opt.optionValue)
-                      }
-                    >
-                      {supportedOperators.map((option) => (
-                      <Option key={option} data-testid={option} value={option}>{option}</Option>
-                      ))}
-                    </Combobox>
-                    </Field>
-                    <Button
-                    appearance="primary"
-                    icon={<TriangleRight20Regular />}
-                    disabled={false}
-                    onClick={() => onRunCalculationButtonClick()}
-                    >
-                    Start calculation job
-                    </Button>
-                    <Divider alignContent="start">Calculation result</Divider>
-                    <Field
-                    label="Last result"
-                    orientation="horizontal"
-                    className="field"
-                    >
-                    <Input
-                      size="small"
-                      placeholder="Last calculation result"
-                      data-testid="lastresult-input"
-                      value={calculationResult}
-                    />
-                    </Field>                    
-                  </div>
-                  </div>
+                            appearance="primary"
+                            icon={<TriangleRight20Regular />}
+                            disabled={false}
+                            onClick={() => onRunCalculationButtonClick()}
+                            >
+                            Start calculation job
+                            </Button>
+                            <Divider alignContent="start">Last calculation run</Divider>
+                            <Field
+                            label="Run result"
+                            orientation="horizontal"
+                            className="field"
+                            >
+                              <Input
+                                size="small"
+                                type="number"
+                                placeholder="Last calculation result"
+                                data-testid="lastresult-input"
+                                readOnly={true}
+                                value={lastCalculationResult?.toString() ?? ""}
+                              />
+                            </Field>     
+                            <Field
+                            label="Run Time"
+                            orientation="horizontal"
+                            className="field"
+                            >
+                              <Input
+                                size="small"
+                                placeholder="Last calculation location"
+                                data-testid="lastresult-input"
+                                readOnly={true}                      
+                                value={lastCalculationRunTime?.toString() ?? ""} 
+                              />
+                            </Field> 
+                            <Field
+                            label="Run Result location"
+                            orientation="horizontal"
+                            className="field"
+                            >
+                              <Input
+                                size="small"
+                                placeholder="Last calculation run result location"
+                                data-testid="lastresult-input"
+                                readOnly={true}
+                                value={lastCalculationResultLocation ?? ""} 
+                              />
+                            </Field>              
+                          </div>
+                        </div>
+                    </span>
+                  </Stack.Item>
+                </Stack>
                 )}
-              </span>
-            </Stack.Item>
-          </Stack>
-        )}
+              </Stack.Item>
+            </Stack>
+          )}
       </Stack>
     </Stack>
   );

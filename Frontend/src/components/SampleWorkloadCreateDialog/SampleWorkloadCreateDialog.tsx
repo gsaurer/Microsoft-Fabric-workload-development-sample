@@ -4,7 +4,7 @@ import { Stack } from "@fluentui/react";
 import { Field, Input, Button, Checkbox } from "@fluentui/react-components";
 import { PageProps, ContextProps } from "../../App";
 import { callAuthAcquireAccessToken, callDialogClose, callItemCreate, callPageOpen } from "../../controller/SampleWorkloadController";
-import { GenericItem, CreateItemPayload } from "../../models/SampleWorkloadModel";
+import { GenericItem } from "../../models/SampleWorkloadModel";
 
 interface SaveAsDialogProps extends PageProps {
     isImmediateSave?: boolean;
@@ -16,7 +16,6 @@ export function SaveAsDialog({ workloadClient, isImmediateSave }: SaveAsDialogPr
     const sampleItemType = sampleWorkloadName + ".SampleWorkloadItem";
     const sampleItemDisplayName = "Sample Workload Item";
     const sampleItemEditorPath = "/sample-workload-editor";
-    const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 
     const [displayName, setDisplayName] = useState<string>("");
     const [description, setDescription] = useState<string>("");
@@ -68,19 +67,12 @@ export function SaveAsDialog({ workloadClient, isImmediateSave }: SaveAsDialogPr
         description?: string): Promise<boolean> => {
 
         try {
-            const createItemPayload: CreateItemPayload = {
-                 item1Metadata: {
-                     lakehouse: { id: EMPTY_GUID, workspaceId: EMPTY_GUID }, 
-                     useOneLake: false
-                }
-            };
-
             const createdItem: GenericItem = await callItemCreate(
                 workspaceObjectId,
                 sampleItemType,
                 displayName,
                 description,
-                createItemPayload,
+                undefined,
                 workloadClient);
 
             // open editor for the new item

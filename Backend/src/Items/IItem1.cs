@@ -9,13 +9,6 @@ namespace Boilerplate.Items
 {
     public interface IItem1 : IItem
     {
-        ItemReference Lakehouse { get; }
-
-        int Operand1 { get; }
-
-        int Operand2 { get; }
-
-        Item1Operator Operator { get; }
 
         /// <summary>
         /// Doubles the operands produced by the item calculation.

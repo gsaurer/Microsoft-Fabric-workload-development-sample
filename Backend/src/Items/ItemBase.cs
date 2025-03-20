@@ -107,8 +107,9 @@ namespace Boilerplate.Items
             DisplayName = createItemRequest.DisplayName;
             Description = createItemRequest.Description;
 
-            SetDefinition(createItemRequest.CreationPayload);
-
+            if(createItemRequest.CreationPayload != null){
+                SetDefinition(createItemRequest.CreationPayload);
+            }
             await SaveChanges();
         }
 

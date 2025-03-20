@@ -65,10 +65,10 @@
           "title": "CreateHub_Card_1_Title",
           "description": "CreateHub_Card_1_Description",
           "icon": {
-            "name": "assets/images/dial.png"
+            "name": "assets/images/item1.png"
           },
           "icon_small": {
-            "name": "assets/images/dial.png"
+            "name": "assets/images/item1.png"
           },
           "onClick": {
             "action": "open.createSampleWorkload"

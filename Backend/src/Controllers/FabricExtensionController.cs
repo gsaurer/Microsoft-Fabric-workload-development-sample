@@ -77,7 +77,7 @@ namespace Boilerplate.Controllers
             await item.Load(itemObjectId);
             var doubleResult = await item.Double();
 
-            var serializedDoubleResult = JsonConvert.SerializeObject(new { Operand1 = doubleResult.Operand1, Operand2 = doubleResult.Operand2 });
+            var serializedDoubleResult = JsonConvert.SerializeObject(new { Operand1 = doubleResult.Operand1, Operand2 = doubleResult.Operand2});
 
             // Return the updated operands
             return Ok(serializedDoubleResult);

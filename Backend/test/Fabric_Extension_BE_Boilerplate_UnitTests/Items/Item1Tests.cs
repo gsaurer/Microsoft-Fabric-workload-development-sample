@@ -48,8 +48,6 @@ namespace Boilerplate.Tests
                 .Callback<Guid, Guid, CommonItemMetadata, Item1Metadata>((tenantObjectIdParam, itemObjectIdGuidParam, commonItemMetadataParam, item1MetadataParam) =>
                 {
                     Assert.That(itemObjectIdGuidParam, Is.EqualTo(itemIdGuid));
-                    Assert.That(item1MetadataParam.Operand1, Is.EqualTo(item1Instance.Operand1));
-                    Assert.That(item1MetadataParam.Operand2, Is.EqualTo(item1Instance.Operand2));
                 })
                 .Returns(Task.CompletedTask)
                 .Verifiable();
