@@ -33,10 +33,16 @@ namespace Boilerplate.Services
 
         public async Task<Shortcut> CreateShortcut(string token, Guid workspaceId, Guid itemId, ShortcutConflictPolicy shortcutConflictPolicy, ShortcutCreateRequest createShortcutRequest)
         {
-            var response = await _httpClient.PostAsJsonAsync($"/v1/workspaces/{workspaceId}/items/{itemId}/shortcuts?shortcutConflictPolicy={shortcutConflictPolicy}", createShortcutRequest);
+            var body = JsonConvert.SerializeObject(createShortcutRequest);
+            var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+            var response = await _httpClientService.PostAsync($"{EnvironmentConstants.FabricApiBaseUrl}/v1/workspaces/{workspaceId}/items/{itemId}/shortcuts?shortcutConflictPolicy={shortcutConflictPolicy}", 
+                content, token);
+            //var response = await _httpClient.PostAsJsonAsync($"/v1/workspaces/{workspaceId}/items/{itemId}/shortcuts?shortcutConflictPolicy={shortcutConflictPolicy}", 
+            //   createShortcutRequest);
             response.EnsureSuccessStatusCode();
-            var content = await response.Content.ReadAsStringAsync();
-            var retVal = JsonConvert.DeserializeObject<Shortcut>(content);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var retVal = JsonConvert.DeserializeObject<Shortcut>(responseContent);
             return retVal;
         }
 

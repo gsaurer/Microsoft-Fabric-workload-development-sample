@@ -37,7 +37,9 @@ import {
   callGetItem1SupportedOperators,
   isOneLakeSupported,
   callOpenSettings,
-  callRunItemJob
+  callRunItemJob,
+  createShortcut,
+  deleteShortcut
 } from "../../controller/SampleWorkloadController";
 import { Ribbon } from "../SampleWorkloadRibbon/SampleWorkloadRibbon";
 import { convertGetItemResultToWorkloadItem } from "../../utils";
@@ -319,6 +321,16 @@ export function SampleWorkloadEditor(props: PageProps) {
     setDirty(true);
   };
 
+  async function onCreateShortcutButtonClick() {
+    await createShortcut(sampleWorkloadBEUrl, workloadClient, sampleItem.id, sampleItem.workspaceId, 
+      "FabConItemShortcut", "Files/FabConItemShortcut", "", "Files/FabConItemShortcut");
+  }
+
+  async function onDeleteShortcutButtonClick() {
+    await deleteShortcut(sampleWorkloadBEUrl, workloadClient, sampleItem.id, sampleItem.workspaceId, 
+      "FabConItemShortcut", "Files/FabConItemShortcut")
+  }
+
   async function onRunCalculationButtonClick(){
     saveItemPayload();
     var jobType = "Org.WorkloadSample.SampleWorkloadItem.CalculateAsText";
@@ -426,6 +438,25 @@ export function SampleWorkloadEditor(props: PageProps) {
                             {sampleItem && (
                               <Label>OneLake item location: https://onelake.blob.fabric.microsoft.com/{sampleItem?.workspaceId}/{sampleItem?.id}/</Label>
                             )}
+                          </div>
+                          <Divider alignContent="start">Shortcuts</Divider>
+                          <div className="section">
+                            <Button
+                              appearance="primary"
+                              icon={<TriangleRight20Regular />}
+                              disabled={false}
+                              onClick={() => onCreateShortcutButtonClick()}
+                              >
+                              Create Shortcut
+                            </Button>
+                            <Button
+                              appearance="primary"
+                              icon={<TriangleRight20Regular />}
+                              disabled={false}
+                              onClick={() => onDeleteShortcutButtonClick()}
+                              >
+                              Delete Shortcut
+                            </Button>
                           </div>
                         </div>
                     </span>

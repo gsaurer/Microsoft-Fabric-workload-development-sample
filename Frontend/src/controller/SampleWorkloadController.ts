@@ -1035,6 +1035,58 @@ export async function isOneLakeSupported(workloadBEUrl: string, workloadClient: 
     return responseBody == 'true';
 }
 
+
+export async function createShortcut(workloadBEUrl: string, workloadClient: WorkloadClientAPI, 
+    workspaceObjectId: string, itemObjectId: string, 
+    shortcutName: string, sourcePath: string, targetItemId: string, targetPath: string,
+    isRetry?: boolean): Promise<boolean> {
+    const accessToken: AccessToken = await callAuthAcquireAccessToken(workloadClient);
+    const response: Response = await fetch(
+        `${workloadBEUrl}/${workspaceObjectId}/${itemObjectId}/createShortcut`, 
+        { method: `POST`, headers: { 'Authorization': 'Bearer ' + accessToken.token }, 
+        body: JSON.stringify({ shortcutName: shortcutName, sourcePath: sourcePath, targetItemId: targetItemId, targetPath: targetPath })
+        });
+    const responseBody: string = await response.text();
+    if (!response.ok) {
+        // Handle non-successful responses here
+        console.error(`Error get item1 isOneLakeSupported API: ${responseBody}`);
+        return await handleException(
+            responseBody,
+            workloadClient,
+            isRetry,
+            /* isDirectWorkloadCall */ true,
+            isOneLakeSupported,
+            workloadBEUrl);
+    }
+    console.log(`*** Successfully got isOneLakeSupported: ${responseBody}`);
+    return responseBody == 'true';
+}
+
+export async function deleteShortcut(workloadBEUrl: string, workloadClient: WorkloadClientAPI, 
+    workspaceObjectId: string, itemObjectId: string, 
+    shortcutName: string, sourcePath: string,
+    isRetry?: boolean): Promise<boolean> {
+    const accessToken: AccessToken = await callAuthAcquireAccessToken(workloadClient);
+    const response: Response = await fetch(`${workloadBEUrl}/${workspaceObjectId}/${itemObjectId}/createShortcut`, 
+        { method: `DELET`, headers: { 'Authorization': 'Bearer ' + accessToken.token }, 
+        body: JSON.stringify({ shortcutName: shortcutName, sourcePath: sourcePath })
+        });
+    const responseBody: string = await response.text();
+    if (!response.ok) {
+        // Handle non-successful responses here
+        console.error(`Error get item1 isOneLakeSupported API: ${responseBody}`);
+        return await handleException(
+            responseBody,
+            workloadClient,
+            isRetry,
+            /* isDirectWorkloadCall */ true,
+            isOneLakeSupported,
+            workloadBEUrl);
+    }
+    console.log(`*** Successfully got isOneLakeSupported: ${responseBody}`);
+    return responseBody == 'true';
+}
+
 /**
  * Handles errors propagated from workload backend.
  *
