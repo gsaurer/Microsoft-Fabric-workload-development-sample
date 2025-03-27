@@ -72,6 +72,7 @@ namespace Boilerplate
 
                         // Access to OneLake
                         services.AddSingleton<IOneLakeClientService, OneLakeClientService>();
+                        services.AddSingleton<IOneLakeShortcutClientService, OneLakeShortcutClientService>();
 
                         //// add more dependencies as needed
 

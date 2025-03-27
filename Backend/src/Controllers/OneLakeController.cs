@@ -20,6 +20,8 @@ namespace Boilerplate.Controllers
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuthenticationService _authenticationService;
         private readonly IOneLakeClientService _oneLakeClientService;
+
+        private readonly IOneLakeShortcutClientService _oneLakeShortcutClientService;
         private readonly IAuthorizationHandler _authorizationHandler;
         private readonly IItemFactory _itemFactory;
 
@@ -28,6 +30,7 @@ namespace Boilerplate.Controllers
             IHttpContextAccessor httpContextAccessor,
             IAuthenticationService authenticationService,
             IOneLakeClientService oneLakeClientService,
+            IOneLakeShortcutClientService oneLakeShortcutClientService,
             IAuthorizationHandler authorizationHandler,
             IItemFactory itemFactory)
         {
@@ -35,6 +38,7 @@ namespace Boilerplate.Controllers
             _httpContextAccessor = httpContextAccessor;
             _authenticationService = authenticationService;
             _oneLakeClientService = oneLakeClientService;
+            _oneLakeShortcutClientService = oneLakeShortcutClientService;
             _authorizationHandler = authorizationHandler;
             _itemFactory = itemFactory;
         }
@@ -53,5 +57,34 @@ namespace Boilerplate.Controllers
 
             return Ok(folderNames?.Any() ?? false);
         }
+
+        /// <summary>
+        /// Returns a flag indicating whether OneLake storage is supported for this item.
+        /// OneLake is supported if the workload opts in via the "CreateOneLakeFoldersOnArtifactCreation" flag
+        /// </summary>
+        /// <returns>true if OneLake is supported for this item, false otherwise</returns>
+        [HttpGet("{workspaceObjectId:guid}/{itemObjectId:guid}/createShortcut")]
+        public async Task<IActionResult> CreateShortuct(Guid workspaceObjectId, Guid itemObjectId)
+        {
+
+            var authorizationContext = await _authenticationService.AuthenticateDataPlaneCall(_httpContextAccessor.HttpContext, allowedScopes: new[] { WorkloadScopes.Item1ReadWriteAll });
+            var token = await _authenticationService.GetAccessTokenOnBehalfOf(authorizationContext, OneLakeConstants.OneLakeScopes);
+            var shortcut = _oneLakeShortcutClientService.CreateShortcut(token, workspaceObjectId, itemObjectId, ShortcutConflictPolicy.GenerateUniqueName, new ShortcutCreateRequest
+            {
+                Name = "TestShortcut",
+                Path = "Path",
+                Target = new CreatableShortcutTarget
+                {
+                    oneLake = new ShortcutOneLake
+                    {
+                        ItemId = Guid.Parse("fa78479a-44a2-421e-bafb-1484c38848c9"),
+                        WorkspaceId = workspaceObjectId,
+                        Path = "Files/FabConItem"
+                    }
+                }
+            });
+            return Ok(shortcut);
+        }
+
     }
 }
